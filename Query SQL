@@ -1,0 +1,85 @@
+Query SQL 
+-- Judul: Analisis Transaksi dan Nasabah
+-- Tujuan: Mengambil insight dari tabel user_data, cards, dan transaksi
+untuk analisis cepat perilaku nasabah, transaksi, kartu, dan penggunaan chip
+
+
+Total & rata-rata transaksi per gender
+Insight: Melihat distribusi transaksi berdasarkan gender, bisa buat chart pie/bar di Looker.
+
+SELECT 
+    u.gender,
+    COUNT(t.id_transaksi) AS jumlah_transaksi,
+    SUM(t.amount_clean) AS total_transaksi,
+    AVG(t.amount_clean) AS avg_transaksi
+FROM transaksi t
+LEFT JOIN user_data u ON t.client_id = u.id
+GROUP BY u.gender;
+
+Total & rata-rata transaksi per card brand
+Insight: Menunjukkan kartu yang paling aktif digunakan, bisa dijadikan bar chart di dashboard.
+
+SELECT 
+    c.card_brand,
+    COUNT(t.id_transaksi) AS jumlah_transaksi,
+    SUM(t.amount_clean) AS total_transaksi,
+    AVG(t.amount_clean) AS avg_transaksi
+FROM transaksi t
+LEFT JOIN cards c ON t.card_id = c.id
+GROUP BY c.card_brand;
+
+Transaksi per kota
+Insight: Kota dengan volume transaksi tertinggi → cocok untuk map/chart per region.
+SELECT 
+    t.merchant_city,
+    COUNT(t.id_transaksi) AS jumlah_transaksi,
+    SUM(t.amount_clean) AS total_transaksi
+FROM transaksi t
+GROUP BY t.merchant_city;
+
+Persentase transaksi pakai chip
+
+Insight: Mengukur seberapa banyak transaksi menggunakan chip → pie chart atau KPI.
+
+SELECT 
+    t.use_chip,
+    COUNT(t.id_transaksi) AS jumlah_transaksi,
+    ROUND(COUNT(t.id_transaksi)*100.0 / (SELECT COUNT(*) FROM transaksi),2) AS persentase
+FROM transaksi t
+GROUP BY t.use_chip;
+
+Transaksi per level pendapatan
+Insight: Mengelompokkan user berdasarkan pendapatan, untuk melihat hubungan income vs spending.
+SELECT 
+    CASE
+        WHEN u.yearly_income < 50000 THEN 'Low Income'
+        WHEN u.yearly_income BETWEEN 50000 AND 150000 THEN 'Middle Income'
+        ELSE 'High Income'
+    END AS income_level,
+    COUNT(t.id_transaksi) AS jumlah_transaksi,
+    SUM(t.amount_clean) AS total_transaksi,
+    AVG(t.amount_clean) AS avg_transaksi
+FROM transaksi t
+LEFT JOIN user_data u ON t.client_id = u.id
+GROUP BY income_level;
+
+Test 350 ribu data untuk visualisasi di looker
+SELECT 
+    t.id AS id_transaksi,
+    t.amount_clean,
+    t.use_chip,
+    t.merchant_city,
+    u.gender,
+    u.birth_year,
+    u.total_debt,
+    u.credit_score,
+    u.per_capita_income,
+    u.yearly_income,
+    u.address,
+    u.current_age,
+    c.card_brand,
+    c.credit_limit
+FROM transaksi t
+LEFT JOIN user_data u ON t.client_id = u.id
+LEFT JOIN cards c ON t.card_id = c.id
+LIMIT 350000;
